@@ -4,29 +4,34 @@ import geomatics
 import json
 import requests
 import os
+import urllib
 
 
 def get_box_values(request):
-    maxlat = float(request.GET['maxlat'])
-    maxlon = float(request.GET['maxlng'])
-    minlat = float(request.GET['minlat'])
-    minlon = float(request.GET['minlng'])
-    coord = json.loads(request.GET['coord'])
-    url = request.GET['odurl']
+    lat = request.GET['lat']
+    lon = request.GET['lon']
+    time = request.GET['time']
+    subset_url = request.GET['subsetURL']
     var = request.GET['var']
+    coord = json.loads(request.GET['coord'])
     path_to_netcdf = os.path.join(os.path.dirname(__file__), 'workspaces', 'app_workspace', 'temp.nc')
-    ds = xarray.open_dataset(url)
 
-    time_series = ds[var].sel(latitude=slice(maxlat, minlat), longitude=slice(minlon, maxlon))
-    time_series.to_netcdf(path=path_to_netcdf)
+    urllib.request.urlretrieve(json.loads(subset_url), path_to_netcdf)
 
-    if not coord is False:
-        data = geomatics.timeseries.point([path_to_netcdf], var, (coord[0], coord[1]), ('latitude', 'longitude'), 'time')
-        time = 'datetime'
+    if coord is not False:
+        data = geomatics.timeseries.point([path_to_netcdf], var, (coord[0], coord[1]), (lat, lon), time)
+        datetime = 'datetime'
         value = 'values'
     else:
-        data = geomatics.timeseries.full_array_stats([path_to_netcdf], var, 'time')
-        time = 'datetime'
+        data = geomatics.timeseries.full_array_stats([path_to_netcdf], var, time)
+        datetime = 'datetime'
         value = 'mean'
 
-    return JsonResponse({'data': data, 'time': time, 'value': value})
+    ds = xarray.open_dataset(path_to_netcdf)
+    times = ds.coords['time']
+    data['datetime'] = times
+
+    for t in enumerate(data.datetime):
+        data.datetime[t[0]] = str(t[1])
+
+    return JsonResponse({'data': data, 'time': datetime, 'value': value})
