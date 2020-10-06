@@ -13,7 +13,6 @@ mapObj.on(L.Draw.Event.CREATED, function (e) {
 shpLayer.on('click', function (e) {
   var layer = e.layer;
   var coords = layer.getBounds();
-  console.log(coords);
   var type = 'rectangle';
   get_timeseries(type, coords);
 });
@@ -24,7 +23,6 @@ function get_coords(e) {
     var type = 'rectangle';
     var coord = layer.getLatLngs();
     var coords = {'_southWest': {'lat': 0, 'lng': 0}, '_northEast': {'lat': 0, 'lng': 0}};
-    console.log(coords);
     coords['_northEast'].lat = coord[0][2].lat;
     coords['_southWest'].lng = coord[0][0].lng;
     coords['_southWest'].lat = coord[0][0].lat;
@@ -55,18 +53,23 @@ function get_timeseries(type, coords) {
       var minlat = coords['_southWest'].lat;
       var minlng = coords['_southWest'].lng;
     }
-
     var vars = $('#variable-input').val();
+    var lat = $('#lat').val();
+    var lng = $('#lng').val();
+    var time = $('#time').val();
+    var subsetUrl = netcdfSubset.replace('point', '') + '?var=' + vars + '&north=' + maxlat + '&west=' + minlng + '&east=' + maxlng + '&south=' + minlat + '&disableProjSubset=on&horizStride=1&temporal=all';
+    console.log('fullURL: ' + subsetUrl);
+    console.log(coords);
+    console.log(coord)
     $.ajax({
       url: 'timeseries/get_box_values/',
       data: {
-        'maxlat': maxlat,
-        'maxlng': maxlng,
-        'minlat': minlat,
-        'minlng': minlng,
         'coord': JSON.stringify(coord),
-        'odurl': odurl,
+        'subsetURL': JSON.stringify(subsetUrl),
         'var': vars,
+        'lat' : lat,
+        'lon' : lng,
+        'time' : time,
       },
       dataType: 'json',
       contentType: "application/json",
@@ -84,25 +87,18 @@ function get_timeseries(type, coords) {
 
 function draw_graph(data, time, value) {
     var series = $.parseJSON(data);
-    var length = Object.keys(series[time]).length;
     let x = [];
     let y = [];
-    var i;
-    for (i = 0; i < length; i++) {
+    for (var i = 0; i < Object.keys(series[time]).length; i++) {
         x.push(series[time][i]);
         y.push(series[value][i]);
     }
-
-    console.log(x)
-    console.log(y)
-
     let variable = $('#variable-input').val();
     let layout = {
         title: 'Mean of ' + variable,
-        xaxis: {title: 'Time'},
-        yaxis: {title: 'Amount (mm)'}
+        xaxis: {title: 'Time', type: 'datetime'},
+        yaxis: {title: 'Amount'}
     };
-
     let values = {
         x: x,
         y: y,
