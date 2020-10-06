@@ -42,7 +42,6 @@ function add_user_layers() {
     success: function (result) {
       let filenames = jQuery.parseJSON(result['filenames']);
       var geojson = jQuery.parseJSON(result['geojson']);
-      console.log(filenames);
       if (filenames !== []) {
         $('#shp-select').append('<option value="" disabled selected hidden>Zoom To Layer</option>');
         $('#properties').append('<option value="" disabled selected hidden></option>');
