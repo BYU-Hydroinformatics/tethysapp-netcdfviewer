@@ -2,12 +2,12 @@ let firstlayeradded = false;
 let files = [];
 let wmsurl = '';
 let odurl = '';
+let netcdfSubset = '';
 let shpfileAdded = false;
 
 add_user_layers();
 
 function get_metadata() {
-  console.log('odurl: ' + odurl)
   $.ajax({
     url: '/apps/netcdfviewer/metadata/',
     data: {'odurl': odurl,},
@@ -17,7 +17,8 @@ function get_metadata() {
     success: function (result) {
       var variables = result['variables'];
       var attrs = result['attrs'];
-      print_metadata(variables, attrs);
+      var dims = result['dims'];
+      print_metadata(variables, attrs, dims);
       update_wmslayer();
     }
   })
@@ -32,22 +33,42 @@ function update_wmslayer() {
   layerControlObj.addOverlay(dataLayerObj, 'netcdf Layer');
 }
 
-function print_metadata(variables, attrs) {
+function print_metadata(variables, attrs, dims) {
   var html = '';
   var html2 = '';
-  console.log(variables)
+  var html3 = '';
+  var html4 = '';
   for (let vars in variables) {
-    if (variables[vars].substr(0, 4) !== 'time') {
-      html += '<option>' + variables[vars] + '</option>';
-    }
+    html += '<option>' + vars + '</option>';
+  }
+  for (var i = 0; i < dims.length; i++) {
+    html2 += '<option>' + dims[i] + '</option>';
   }
   for (var att in attrs) {
-    html2 += '<b style="padding-left: 40px">' + att + ':<b/><p style="padding-left: 40px">' + attrs[att] + '</p>';
+    html3 += '<b style="padding-left: 40px">' + att + ':<b/><p style="padding-left: 40px">' + attrs[att] + '</p>';
+  }
+  for (var varb in variables) {
+    html4 += '<b style="padding-left: 40px">' + varb + ':<b/>'
+    for (var attr in variables[varb]) {
+      html4 += '<p style="padding-left: 40px">' + attr + ': ' + variables[varb][attr] + '</p>';
+    }
   }
   $('#variable-input').empty();
   $('#variable-input').append(html);
+  $('#variable-input option:nth-child(2)').attr('selected', 'selected');
+  $('#time').empty();
+  $('#time').append(html2);
+  $('#lat').empty();
+  $('#lat').append(html2);
+  $('#lat option:nth-child(2)').attr('selected', 'selected');
+  $('#lng').empty();
+  $('#lng').append(html2);
+  $('#lng option:nth-child(3)').attr('selected', 'selected');
   $('#metadata-div').empty();
-  $('#metadata-div').append(html2);
+  $('#metadata-div').append(html3);
+  $('#var-metadata-div').empty();
+  $('#var-metadata-div').append(html4);
+  $('#file-metadata-button').css('background-color', 'rgba(205, 209, 253, 1)');
 }
 
 function update_filepath() {
@@ -133,6 +154,7 @@ function get_files(url) {
         currentURL = currentURL.split('/thredds/')[0];
         wmsurl = currentURL + passedFiles['WMS:'];
         odurl = currentURL + passedFiles['OPENDAP:'];
+        netcdfSubset = currentURL + passedFiles['NetcdfSubset:']
         var newURL = files[files.length - 1]
         $('#url-input').val(newURL)
         get_files(newURL);
@@ -158,3 +180,15 @@ $('#wmslayer-style').change(function () {update_wmslayer();});
 $('#wmslayer-bounds').change(function () {update_wmslayer();});
 $('#opacity-slider').change(function () {dataLayerObj.setOpacity($('#opacity-slider').val())});
 $('#upload-shp').click(function() {$('#uploadshp-modal').modal('show')});
+$('#file-metadata-button').click(function() {
+  $('#var-metadata-div').css('display', 'none');
+  $('#metadata-div').css('display', 'block');
+  $('#file-metadata-button').css('background-color', 'rgba(205, 209, 253, 1)');
+  $('#var-metadata-button').css('background-color', 'rgba(130, 141, 205, 1)');
+});
+$('#var-metadata-button').click(function() {
+  $('#metadata-div').css('display', 'none');
+  $('#var-metadata-div').css('display', 'block');
+  $('#var-metadata-button').css('background-color', 'rgba(205, 209, 253, 1)');
+  $('#file-metadata-button').css('background-color', 'rgba(130, 141, 205, 1)');
+});
